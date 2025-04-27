@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小朋友學時鐘</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF6B9D',
+                        secondary: '#6BC5FF',
+                        accent: '#FFD56B',
+                        success: '#85DE75',
+                        background: '#F9F3FF',
+                        darkBg: '#332A40'
+                    },
+                    fontFamily: {
+                        cute: ['Comic Sans MS', 'cursive', 'sans-serif']
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'cursive', 'sans-serif';
+        }
+        
+        .clock-face {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            margin: 0 auto;
+        }
+        
+        .clock-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        .hour-hand, .minute-hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            z-index: 5;
+            border-radius: 15px;
+        }
+        
+        .hour-hand {
+            width: 10px;
+            height: 80px;
+            margin-left: -5px;
+        }
+        
+        .minute-hand {
+            width: 6px;
+            height: 120px;
+            margin-left: -3px;
+        }
+        
+        .number {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            line-height: 40px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50%;
+        }
+        
+        .bounce {
+            animation: bounce 0.5s;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .wiggle {
+            animation: wiggle 0.5s;
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .star {
+            animation: star 1.5s;
+        }
+        
+        @keyframes star {
+            0% { transform: scale(0) rotate(0deg); }
+            50% { transform: scale(1.5) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+        
+        .animate-float {
+            animation: float 5s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        
+        .character-shadow {
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+        }
+        
+        /* 煙火動畫 */
+        .firework {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: explode 1s ease-out forwards;
+            opacity: 0;
+        }
+        
+        @keyframes explode {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            25% {
+                opacity: 1;
+            }
+            100% {
+                transform: scale(20);
+                opacity: 0;
+            }
+        }
+        
+        /* 閃爍動畫 */
+        .sparkle {
+            animation: sparkle 1.5s infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        /* 旋轉動畫 */
+        .rotating {
+            animation: rotate 4s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 放大縮小動畫 */
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body class="transition-colors duration-200 bg-background dark:bg-darkBg min-h-screen">
+    <div class="container mx-auto px-4 py-6">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-bold text-primary dark:text-accent mb-2">小朋友學時鐘</h1>
+            <p class="text-xl text-gray-600 dark:text-gray-300">跟著小兔子一起學習看時鐘吧!</p>
+        </header>
+        
+        <main class="max-w-4xl mx-auto">
+            <!-- 遊戲狀態區 -->
+            <div class="flex justify-between items-center mb-6">
+                <div class="bg-secondary rounded-full px-6 py-2 text-white text-lg font-bold shadow-md">
+                    分數: <span id="score">0</span>
+                </div>
+                <div class="bg-accent rounded-full px-6 py-2 text-gray-800 text-lg font-bold shadow-md">
+                    關卡: <span id="level">1</span>
+                </div>
+            </div>
+            
+            <!-- 遊戲面板 -->
+            <div class="flex flex-col md:flex-row gap-8 items-center">
+                <!-- 左側 - 時鐘 -->
+                <div class="w-full md:w-1/2 flex flex-col items-center">
+                    <div class="relative">
+                        <div id="clock" class="clock-face bg-white dark:bg-gray-800 p-4">
+                            <!-- 時鐘數字將通過JavaScript動態添加 -->
+                            <div class="clock-center bg-primary dark:bg-accent"></div>
+                            <div id="hourHand" class="hour-hand bg-primary dark:bg-primary"></div>
+                            <div id="minuteHand" class="minute-hand bg-secondary dark:bg-secondary"></div>
+                        </div>
+                        
+                        <!-- 小兔子角色 -->
+                        <div class="absolute -right-10 -top-16 animate-float character-shadow">
+                            <svg width="90" height="120" viewBox="0 0 90 120" id="bunny">
+                                <!-- 兔子頭 -->
+                                <ellipse cx="45" cy="70" rx="30" ry="35" fill="#FFDFEF" />
+                                
+                                <!-- 兔子耳朵 -->
+                                <ellipse cx="25" cy="30" rx="10" ry="25" fill="#FFDFEF" transform="rotate(-15, 25, 30)" />
+                                <ellipse cx="65" cy="30" rx="10" ry="25" fill="#FFDFEF" transform="rotate(15, 65, 30)" />
+                                <ellipse cx="25" cy="30" rx="6" ry="15" fill="#FFB6D9" transform="rotate(-15, 25, 30)" />
+                                <ellipse cx="65" cy="30" rx="6" ry="15" fill="#FFB6D9" transform="rotate(15, 65, 30)" />
+                                
+                                <!-- 兔子臉 -->
+                                <circle cx="35" cy="65" r="4" fill="#333" /> <!-- 左眼 -->
+                                <circle cx="55" cy="65" r="4" fill="#333" /> <!-- 右眼 -->
+                                <ellipse cx="45" cy="75" rx="6" ry="4" fill="#FF9CC2" /> <!-- 鼻子 -->
+                                
+                                <!-- 兔子嘴巴 (微笑) -->
+                                <path d="M35 80 Q45 88 55 80" stroke="#333" stroke-width="2" fill="none" id="bunnyMouth" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div id="feedback" class="mt-4 h-12 text-xl font-bold text-center"></div>
+                </div>
+                
+                <!-- 右側 - 遊戲控制 -->
+                <div class="w-full md:w-1/2 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-lg">
+                    <div id="questionContainer" class="mb-6 text-center">
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-3">現在幾點鐘?</h2>
+                        <p id="questionText" class="text-3xl text-primary dark:text-accent font-bold"></p>
+                    </div>
+                    
+                    <div id="answerContainer" class="grid grid-cols-2 gap-4 mb-6">
+                        <button class="answer-btn bg-accent hover:bg-accent/80 text-gray-800 text-xl font-bold py-3 px-4 rounded-xl shadow-md transition-transform hover:scale-105"></button>
+                        <button class="answer-btn bg-accent hover:bg-accent/80 text-gray-800 text-xl font-bold py-3 px-4 rounded-xl shadow-md transition-transform hover:scale-105"></button>
+                        <button class="answer-btn bg-accent hover:bg-accent/80 text-gray-800 text-xl font-bold py-3 px-4 rounded-xl shadow-md transition-transform hover:scale-105"></button>
+                        <button class="answer-btn bg-accent hover:bg-accent/80 text-gray-800 text-xl font-bold py-3 px-4 rounded-xl shadow-md transition-transform hover:scale-105"></button>
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <button id="restartBtn" class="w-1/2 bg-secondary hover:bg-secondary/80 text-white text-lg font-bold py-3 px-6 rounded-xl shadow-md transition-transform hover:scale-105">
+                            重新開始
+                        </button>
+                        <button id="nextBtn" class="w-1/2 bg-primary hover:bg-primary/80 text-white text-lg font-bold py-3 px-6 rounded-xl shadow-md transition-transform hover:scale-105">
+                            下一題
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 切換遊戲模式 -->
+            <div class="mt-8 flex justify-center">
+                <div class="bg-white dark:bg-gray-800 rounded-full p-2 flex shadow-md flex-wrap justify-center">
+                    <button id="mode1" class="mode-btn bg-primary text-white px-4 py-2 rounded-full font-bold m-1">整點</button>
+                    <button id="mode2" class="mode-btn text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full font-bold m-1">半點</button>
+                    <button id="mode3" class="mode-btn text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full font-bold m-1">分鐘</button>
+                    <button id="mode4" class="mode-btn text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full font-bold m-1">指針位置</button>
+                </div>
+            </div>
+            
+            <!-- 獎勵展示區 -->
+            <div class="mt-8 p-4 bg-white dark:bg-gray-800 rounded-3xl shadow-lg">
+                <h3 class="text-center text-xl font-bold text-gray-800 dark:text-white mb-4">獲得的獎章</h3>
+                <div id="badges" class="flex flex-wrap justify-center gap-4">
+                    <div class="badge opacity-40 bg-gray-200 dark:bg-gray-700 w-16 h-16 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="badge opacity-40 bg-gray-200 dark:bg-gray-700 w-16 h-16 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                    </div>
+                    <div class="badge opacity-40 bg-gray-200 dark:bg-gray-700 w-16 h-16 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 遊戲完成提示 -->
+        <div id="levelComplete" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-lg max-w-md w-full text-center">
+                <div class="star mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold mb-4 text-primary dark:text-accent">太棒了!</h2>
+                <p class="text-xl text-gray-700 dark:text-gray-300 mb-2">你完成了關卡 <span id="completeLevel">1</span>!</p>
+                <p class="text-lg text-gray-600 dark:text-gray-400 mb-6">繼續加油!</p>
+                
+                <!-- 慶祝特效容器 -->
+                <div id="celebrationContainer" class="relative w-full h-40 mb-6">
+                    <!-- 會動態生成煙火和其他特效 -->
+                </div>
+                
+                <button id="nextLevelBtn" class="bg-primary hover:bg-primary/80 text-white text-xl font-bold py-3 px-8 rounded-xl shadow-md transition-transform hover:scale-105 w-full">
+                    下一關
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 檢測暗色模式
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+        
+        // 遊戲狀態
+        let score = 0;
+        let level = 1;
+        let currentMode = 1; // 1: 整點, 2: 半點, 3: 分鐘, 4: 指針位置
+        let currentTime = null;
+        let currentHandType = null; // 'hour' 或 'minute'
+        let answerButtons = document.querySelectorAll('.answer-btn');
+        let badges = document.querySelectorAll('.badge');
+        
+        // DOM 元素
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const questionText = document.getElementById('questionText');
+        const feedbackElement = document.getElementById('feedback');
+        const hourHand = document.getElementById('hourHand');
+        const minuteHand = document.getElementById('minuteHand');
+        const nextBtn = document.getElementById('nextBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const levelCompleteModal = document.getElementById('levelComplete');
+        const completeLevelElement = document.getElementById('completeLevel');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const modeButtons = [
+            document.getElementById('mode1'),
+            document.getElementById('mode2'),
+            document.getElementById('mode3'),
+            document.getElementById('mode4')
+        ];
+        const bunny = document.getElementById('bunny');
+        const bunnyMouth = document.getElementById('bunnyMouth');
+        const celebrationContainer = document.getElementById('celebrationContainer');
+        
+        // 初始化時鐘
+        function initClock() {
+            const clockFace = document.getElementById('clock');
+            
+            // 添加時鐘數字
+            for (let i = 1; i <= 12; i++) {
+                const angle = (i - 3) * 30 * Math.PI / 180;
+                const x = 150 + 115 * Math.cos(angle);
+                const y = 150 + 115 * Math.sin(angle);
+                
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'number bg-accent dark:bg-secondary text-gray-800 dark:text-white';
+                numberDiv.textContent = i;
+                numberDiv.style.left = `${x - 20}px`;
+                numberDiv.style.top = `${y - 20}px`;
+                
+                clockFace.appendChild(numberDiv);
+            }
+        }
+        
+        // 設置時鐘指針
+        function setClockHands(hours, minutes) {
+            const hourDeg = (hours % 12) * 30 + minutes * 0.5;
+            const minuteDeg = minutes * 6;
+            
+            hourHand.style.transform = `rotate(${hourDeg}deg)`;
+            minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+        }
+        
+        // 生成隨機時間
+        function generateRandomTime() {
+            let hours, minutes;
+            
+            if (currentMode === 1) {
+                // 整點模式 (只有整點)
+                hours = Math.floor(Math.random() * 12) + 1;
+                minutes = 0;
+            } else if (currentMode === 2) {
+                // 半點模式 (只有整點或半點)
+                hours = Math.floor(Math.random() * 12) + 1;
+                minutes = Math.random() < 0.5 ? 0 : 30;
+            } else if (currentMode === 3) {
+                // 分鐘模式 (分鐘是 5 的倍數)
+                hours = Math.floor(Math.random() * 12) + 1;
+                minutes = Math.floor(Math.random() * 12) * 5;
+            } else {
+                // 指針位置模式 (隨機時間,並詢問指針指向哪個數字)
+                hours = Math.floor(Math.random() * 12) + 1;
+                minutes = Math.floor(Math.random() * 12) * 5;
+                currentHandType = Math.random() < 0.5 ? 'hour' : 'minute';
+            }
+            
+            return { hours, minutes };
+        }
+        
+        // 格式化時間為文本
+        function formatTimeText(hours, minutes) {
+            const paddedMinutes = minutes.toString().padStart(2, '0');
+            return `${hours}:${paddedMinutes}`;
+        }
+        
+        // 獲取指針指向的數字
+        function getHandNumber(handType, hours, minutes) {
+            if (handType === 'hour') {
+                // 時針指向的數字 (考慮分鐘對時針位置的影響)
+                return Math.round(((hours % 12) + minutes / 60) % 12) || 12;
+            } else {
+                // 分針指向的數字
+                return Math.round(minutes / 5) % 12 || 12;
+            }
+        }
+        
+        // 生成問題選項
+        function generateQuestionOptions(correctTime) {
+            let options = [];
+            
+            if (currentMode === 4) {
+                // 指針位置模式: 選項是數字1-12
+                const correctNumber = getHandNumber(currentHandType, correctTime.hours, correctTime.minutes);
+                options = [correctNumber];
+                
+                // 添加三個不同的隨機數字
+                while (options.length < 4) {
+                    const randomNumber = Math.floor(Math.random() * 12) + 1;
+                    if (!options.includes(randomNumber)) {
+                        options.push(randomNumber);
+                    }
+                }
+            } else {
+                // 時間模式: 選項是時間文本
+                options = [formatTimeText(correctTime.hours, correctTime.minutes)];
+                
+                // 生成三個不同的錯誤選項
+                while (options.length < 4) {
+                    const wrongTime = generateRandomTime();
+                    const wrongTimeText = formatTimeText(wrongTime.hours, wrongTime.minutes);
+                    
+                    if (!options.includes(wrongTimeText)) {
+                        options.push(wrongTimeText);
+                    }
+                }
+            }
+            
+            // 隨機排序選項
+            return options.sort(() => Math.random() - 0.5);
+        }
+        
+        // 設置新問題
+        function setNewQuestion() {
+            nextBtn.disabled = true;
+            nextBtn.classList.add('opacity-50');
+            
+            // 生成隨機時間
+            currentTime = generateRandomTime();
+            
+            // 設置時鐘指針
+            setClockHands(currentTime.hours, currentTime.minutes);
+            
+            // 設置問題文本
+            if (currentMode === 1) {
+                questionText.textContent = "這是幾點整?";
+            } else if (currentMode === 2) {
+                questionText.textContent = "這是幾點?(整點或半點)";
+            } else if (currentMode === 3) {
+                questionText.textContent = "現在幾點幾分?";
+            } else if (currentMode === 4) {
+                if (currentHandType === 'hour') {
+                    // 突出顯示時針
+                    hourHand.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--tw-colors-primary') || '#FF6B9D';
+                    hourHand.style.height = '85px';
+                    minuteHand.style.opacity = '0.4';
+                    questionText.textContent = "時針指向哪個數字?";
+                } else {
+                    // 突出顯示分針
+                    minuteHand.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--tw-colors-secondary') || '#6BC5FF';
+                    minuteHand.style.height = '125px';
+                    hourHand.style.opacity = '0.4';
+                    questionText.textContent = "分針指向哪個數字?";
+                }
+            }
+            
+            // 生成選項
+            const options = generateQuestionOptions(currentTime);
+            
+            // 設置選項按鈕
+            answerButtons.forEach((button, index) => {
+                button.textContent = options[index];
+                button.dataset.value = options[index];
+                button.className = "answer-btn bg-accent hover:bg-accent/80 text-gray-800 text-xl font-bold py-3 px-4 rounded-xl shadow-md transition-transform hover:scale-105";
+                button.disabled = false;
+            });
+            
+            // 清除反饋訊息
+            feedbackElement.textContent = '';
+            feedbackElement.className = 'mt-4 h-12 text-xl font-bold text-center';
+            
+            // 重置指針樣式(如果之前有設置)
+            if (currentMode !== 4) {
+                hourHand.style.backgroundColor = '';
+                minuteHand.style.backgroundColor = '';
+                hourHand.style.height = '80px';
+                minuteHand.style.height = '120px';
+                hourHand.style.opacity = '1';
+                minuteHand.style.opacity = '1';
+            }
+        }
+        
+        // 檢查答案
+        function checkAnswer(selectedAnswer) {
+            let correctAnswer;
+            
+            if (currentMode === 4) {
+                // 指針位置模式
+                correctAnswer = getHandNumber(currentHandType, currentTime.hours, currentTime.minutes).toString();
+            } else {
+                // 時間模式
+                correctAnswer = formatTimeText(currentTime.hours, currentTime.minutes);
+            }
+            
+            // 禁用所有答案按鈕
+            answerButtons.forEach(button => {
+                button.disabled = true;
+            });
+            
+            // 標記正確和錯誤答案
+            answerButtons.forEach(button => {
+                if (button.dataset.value === correctAnswer) {
+                    button.classList.remove('bg-accent');
+                    button.classList.add('bg-success');
+                } else if (button.dataset.value === selectedAnswer && selectedAnswer !== correctAnswer) {
+                    button.classList.remove('bg-accent');
+                    button.classList.add('bg-red-500');
+                }
+            });
+            
+            // 檢查答案是否正確
+            if (selectedAnswer === correctAnswer) {
+                // 正確答案
+                score += 10;
+                scoreElement.textContent = score;
+                
+                feedbackElement.textContent = '正確!太棒了!';
+                feedbackElement.className = 'mt-4 h-12 text-xl font-bold text-center text-success bounce';
+                
+                // 讓兔子看起來更開心
+                bunnyMouth.setAttribute('d', 'M35 80 Q45 90 55 80');
+                
+                // 檢查是否完成當前關卡 (每關 5 題)
+                if (score % 50 === 0) {
+                    setTimeout(() => {
+                        // 顯示完成對話框
+                        levelCompleteModal.classList.remove('hidden');
+                        completeLevelElement.textContent = level;
+                        
+                        // 創建慶祝動畫
+                        createCelebrationEffects();
+                        
+                        // 解鎖獎章
+                        if (level <= badges.length) {
+                            badges[level - 1].classList.remove('opacity-40', 'bg-gray-200', 'dark:bg-gray-700');
+                            badges[level - 1].classList.add('opacity-100', 'bg-accent', 'dark:bg-primary');
+                            const badgeSvg = badges[level - 1].querySelector('svg');
+                            badgeSvg.classList.remove('text-gray-400');
+                            badgeSvg.classList.add('text-white', 'sparkle');
+                        }
+                    }, 1000);
+                }
+            } else {
+                // 錯誤答案
+                feedbackElement.textContent = '不對唷,再試一次!';
+                feedbackElement.className = 'mt-4 h-12 text-xl font-bold text-center text-red-500 wiggle';
+                
+                // 讓兔子看起來不開心
+                bunnyMouth.setAttribute('d', 'M35 85 Q45 80 55 85');
+                
+                // 晃動時鐘指針
+                hourHand.classList.add('wiggle');
+                minuteHand.classList.add('wiggle');
+                
+                setTimeout(() => {
+                    hourHand.classList.remove('wiggle');
+                    minuteHand.classList.remove('wiggle');
+                    
+                    // 恢復兔子正常表情
+                    setTimeout(() => {
+                        bunnyMouth.setAttribute('d', 'M35 80 Q45 88 55 80');
+                    }, 1000);
+                }, 500);
+            }
+            
+            // 啟用下一題按鈕
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('opacity-50');
+        }
+        
+        // 創建慶祝特效
+        function createCelebrationEffects() {
+            // 清空容器
+            celebrationContainer.innerHTML = '';
+            
+            // 創建煙火
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    
+                    // 隨機顏色
+                    const colors = ['#FF6B9D', '#6BC5FF', '#FFD56B', '#85DE75', '#FF7979'];
+                    firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // 隨機位置
+                    const left = Math.random() * 100;
+                    const top = Math.random() * 100;
+                    firework.style.left = `${left}%`;
+                    firework.style.top = `${top}%`;
+                    
+                    celebrationContainer.appendChild(firework);
+                    
+                    // 移除煙火元素(動畫完成後)
+                    setTimeout(() => {
+                        firework.remove();
+                    }, 1500);
+                }, i * 300);
+            }
+            
+            // 增加一些旋轉星星
+            for (let i = 0; i < 3; i++) {
+                const star = document.createElement('div');
+                star.className = 'absolute rotating';
+                star.style.left = `${20 + i * 30}%`;
+                star.style.top = `${20 + (i % 2) * 50}%`;
+                
+                // 創建星星 SVG
+                star.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                `;
+                
+                celebrationContainer.appendChild(star);
+            }
+            
+            // 添加一個跳躍的兔子
+            const celebrationBunny = document.createElement('div');
+            celebrationBunny.className = 'absolute left-1/2 transform -translate-x-1/2 pulse';
+            celebrationBunny.style.bottom = '0';
+            celebrationBunny.innerHTML = `
+                <svg width="70" height="90" viewBox="0 0 90 120">
+                    <!-- 兔子頭 -->
+                    <ellipse cx="45" cy="70" rx="30" ry="35" fill="#FFDFEF" />
+                    
+                    <!-- 兔子耳朵 -->
+                    <ellipse cx="25" cy="30" rx="10" ry="25" fill="#FFDFEF" transform="rotate(-15, 25, 30)" />
+                    <ellipse cx="65" cy="30" rx="10" ry="25" fill="#FFDFEF" transform="rotate(15, 65, 30)" />
+                    <ellipse cx="25" cy="30" rx="6" ry="15" fill="#FFB6D9" transform="rotate(-15, 25, 30)" />
+                    <ellipse cx="65" cy="30" rx="6" ry="15" fill="#FFB6D9" transform="rotate(15, 65, 30)" />
+                    
+                    <!-- 兔子臉 -->
+                    <circle cx="35" cy="65" r="4" fill="#333" /> <!-- 左眼 -->
+                    <circle cx="55" cy="65" r="4" fill="#333" /> <!-- 右眼 -->
+                    <ellipse cx="45" cy="75" rx="6" ry="4" fill="#FF9CC2" /> <!-- 鼻子 -->
+                    
+                    <!-- 兔子嘴巴 (大笑) -->
+                    <path d="M35 80 Q45 95 55 80" stroke="#333" stroke-width="2" fill="none" />
+                </svg>
+            `;
+            
+            celebrationContainer.appendChild(celebrationBunny);
+        }
+        
+        // 進入下一關卡
+        function nextLevel() {
+            level++;
+            levelElement.textContent = level;
+            levelCompleteModal.classList.add('hidden');
+            
+            // 根據關卡調整難度
+            if (level >= 3 && currentMode === 1) {
+                setGameMode(2); // 第3關開始出現半點
+            } else if (level >= 5 && currentMode === 2) {
+                setGameMode(3); // 第5關開始出現分鐘
+            } else if (level >= 7 && currentMode === 3) {
+                setGameMode(4); // 第7關開始出現指針位置問題
+            }
+            
+            setNewQuestion();
+        }
+        
+        // 設置遊戲模式
+        function setGameMode(mode) {
+            currentMode = mode;
+            
+            // 更新模式按鈕狀態
+            modeButtons.forEach((button, index) => {
+                if (index + 1 === mode) {
+                    button.classList.add('bg-primary', 'text-white');
+                    button.classList.remove('text-gray-700', 'dark:text-gray-300');
+                } else {
+                    button.classList.remove('bg-primary', 'text-white');
+                    button.classList.add('text-gray-700', 'dark:text-gray-300');
+                }
+            });
+            
+            setNewQuestion();
+        }
+        
+        // 重新開始遊戲
+        function restartGame() {
+            score = 0;
+            level = 1;
+            scoreElement.textContent = score;
+            levelElement.textContent = level;
+            
+            // 重設獎章
+            badges.forEach(badge => {
+                badge.classList.add('opacity-40', 'bg-gray-200', 'dark:bg-gray-700');
+                badge.classList.remove('opacity-100', 'bg-accent', 'dark:bg-primary');
+                const badgeSvg = badge.querySelector('svg');
+                badgeSvg.classList.add('text-gray-400');
+                badgeSvg.classList.remove('text-white', 'sparkle');
+            });
+            
+            // 重設為整點模式
+            setGameMode(1);
+        }
+        
+        // 事件監聽器
+        answerButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                checkAnswer(this.dataset.value);
+            });
+        });
+        
+        nextBtn.addEventListener('click', setNewQuestion);
+        restartBtn.addEventListener('click', restartGame);
+        nextLevelBtn.addEventListener('click', nextLevel);
+        
+        modeButtons.forEach((button, index) => {
+            button.addEventListener('click', () => {
+                setGameMode(index + 1);
+            });
+        });
+        
+        // 初始化遊戲
+        initClock();
+        setNewQuestion();
+    </script>
+</body>
+</html>
